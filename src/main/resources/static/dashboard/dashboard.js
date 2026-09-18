@@ -824,7 +824,10 @@ function analyzeLogs() {
 
             }
 
-            return response.json();
+            return response.text().then(text => {
+                console.log("BACKEND RESPONSE:", text);
+                return JSON.parse(text.replace(/\\n/g, "\n"));
+            });
 
         })
 
