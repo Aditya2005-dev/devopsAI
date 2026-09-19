@@ -41,7 +41,7 @@ DevOps Monitor simplifies this process by providing a dashboard where users can:
 - Docker containerization
 - Render deployment
 
----
+-Architecture
 
 
                          GitHub
@@ -78,9 +78,9 @@ DevOps Monitor simplifies this process by providing a dashboard where users can:
                   │ Root Cause / Fix  │
                   │ Evidence / Issues │
                   └───────────────────┘
+                  
 
-
-                  ## Tech Stack
+## Tech Stack
 
 ### Backend
 
