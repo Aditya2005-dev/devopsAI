@@ -1,521 +1,157 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
-    <meta charset="UTF-8">
-
-    <meta
-            name="viewport"
-            content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>DevOps Monitor</title>
-
-    <link
-            rel="stylesheet"
-            href="/dashboard/style.css"
-    >
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevOps Monitor</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>◈</text></svg>">
+  <link rel="stylesheet" href="/dashboard/style.css">
 </head>
-
-
 <body>
-
 <div class="app">
 
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-symbol">◈</div>
+      <div>
+        <h2>DevOps Monitor</h2>
+        <span>CI/CD Intelligence</span>
+      </div>
+    </div>
 
-    <!-- ================= HEADER ================= -->
+    <div class="topbar-right">
+      <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle theme" title="Toggle theme">
+        <span class="theme-icon-dark">🌙</span>
+        <span class="theme-icon-light">☀️</span>
+      </button>
 
-    <header class="topbar">
+      <div class="github-user">
+        <img id="userAvatar" class="avatar" alt="">
+        <span id="username">GitHub User</span>
+      </div>
+    </div>
+  </header>
 
-        <div class="brand">
+  <main class="main">
 
-            <div class="brand-symbol">
-                ◈
-            </div>
+    <section class="heading">
+      <p class="eyebrow">GITHUB ACTIONS</p>
+      <h1>Pipeline Investigation</h1>
+      <p>Inspect CI/CD runs and investigate build failures using processed logs and AI.</p>
+    </section>
 
-            <div>
+    <section class="selectors">
+      <div class="selector">
+        <label for="repository">Repository</label>
+        <select id="repository">
+          <option value="">Select repository</option>
+        </select>
+      </div>
+      <div class="selector">
+        <label for="workflow">Workflow</label>
+        <select id="workflow" disabled>
+          <option value="">Select workflow</option>
+        </select>
+      </div>
+      <div class="selector">
+        <label for="run">Run</label>
+        <select id="run" disabled>
+          <option value="">Select run</option>
+        </select>
+      </div>
+    </section>
 
-                <h2>DevOps Monitor</h2>
+    <!-- ================= BUILD & PIPELINE INFO ================= -->
+    <section class="section">
+      <div class="section-title">
+        <h2>Build &amp; Pipeline Info</h2>
+      </div>
 
-                <span>
-                    CI/CD Intelligence
-                </span>
-
-            </div>
-
+      <div class="build-card">
+        <div class="build-top">
+          <span id="buildStatus" class="build-status neutral">SELECT A RUN</span>
+          <h3 id="buildTitle">Select a workflow run</h3>
+          <p id="buildMessage">Choose a run above to inspect its GitHub Actions result.</p>
         </div>
 
+        <div class="build-grid">
+          <div><span>Repository</span><strong id="infoRepository">—</strong></div>
+          <div><span>Workflow</span><strong id="infoWorkflow">—</strong></div>
+          <div><span>Branch</span><strong id="infoBranch">—</strong></div>
+          <div><span>Commit</span><strong id="infoCommit">—</strong></div>
+          <div><span>Status</span><strong id="runStatus">—</strong></div>
+          <div><span>Conclusion</span><strong id="runConclusion">—</strong></div>
+          <div><span>Started</span><strong id="runStarted">—</strong></div>
+          <div><span>Completed</span><strong id="runCompleted">—</strong></div>
+          <div><span>Duration</span><strong id="runDuration">—</strong></div>
+        </div>
+      </div>
+    </section>
 
-        <div class="github-user">
+    <!-- ================= AI ANALYSIS ================= -->
+    <section class="section">
+      <div class="section-title">
+        <h2>AI Analysis</h2>
+        <button id="analyzeButton" class="analyze-button" disabled>Analyze with AI</button>
+      </div>
 
-            <span id="username">
-                GitHub User
-            </span>
+      <div class="analysis-card">
 
+        <div class="analysis-block">
+          <h4>⚠️ Issue</h4>
+          <p id="aiSummary">Select a workflow run and analyze its processed logs.</p>
         </div>
 
-    </header>
-
-
-
-    <!-- ================= MAIN ================= -->
-
-    <main class="main">
-
-
-        <!-- PAGE TITLE -->
-
-        <section class="heading">
-
-            <div>
-
-                <p class="eyebrow">
-                    GITHUB ACTIONS
-                </p>
-
-                <h1>
-                    Pipeline Investigation
-                </h1>
-
-                <p>
-                    Inspect CI/CD runs and investigate build
-                    failures using processed logs and AI.
-                </p>
-
-            </div>
-
-        </section>
-
-
-
-        <!-- ================= SELECTORS ================= -->
-
-        <section class="selectors">
-
-            <div class="selector">
-
-                <label>
-                    REPOSITORY
-                </label>
-
-                <select id="repository">
-
-                    <option value="">
-                        Select repository
-                    </option>
-
-                </select>
-
-            </div>
-
-
-            <div class="selector">
-
-                <label>
-                    WORKFLOW
-                </label>
-
-                <select
-                        id="workflow"
-                        disabled
-                >
-
-                    <option value="">
-                        Select workflow
-                    </option>
-
-                </select>
-
-            </div>
-
-
-            <div class="selector">
-
-                <label>
-                    WORKFLOW RUN
-                </label>
-
-                <select
-                        id="run"
-                        disabled
-                >
-
-                    <option value="">
-                        Select run
-                    </option>
-
-                </select>
-
-            </div>
-
-        </section>
-
-
-
-        <!-- ================= BUILD STATUS ================= -->
-
-        <section class="section">
-
-            <div class="section-title">
-
-                <div>
-
-                    <p class="eyebrow">
-                        PIPELINE
-                    </p>
-
-                    <h2>
-                        Build Status
-                    </h2>
-
-                </div>
-
-            </div>
-
-
-            <div class="build-card">
-
-
-                <div class="build-main">
-
-                    <div
-                            id="buildStatus"
-                            class="build-status neutral"
-                    >
-                        SELECT A RUN
-                    </div>
-
-
-                    <h3 id="buildTitle">
-                        Select a workflow run
-                    </h3>
-
-
-                    <p id="buildMessage">
-                        Choose a run above to inspect
-                        its GitHub Actions result.
-                    </p>
-
-                </div>
-
-
-
-                <div class="build-details">
-
-
-                    <div>
-
-                        <span>
-                            STATUS
-                        </span>
-
-                        <strong id="runStatus">
-                            —
-                        </strong>
-
-                    </div>
-
-
-                    <div>
-
-                        <span>
-                            CONCLUSION
-                        </span>
-
-                        <strong id="runConclusion">
-                            —
-                        </strong>
-
-                    </div>
-
-
-                    <div>
-
-                        <span>
-                            STARTED
-                        </span>
-
-                        <strong id="runStarted">
-                            —
-                        </strong>
-
-                    </div>
-
-
-                    <div>
-
-                        <span>
-                            COMPLETED
-                        </span>
-
-                        <strong id="runCompleted">
-                            —
-                        </strong>
-
-                    </div>
-
-
-                    <div>
-
-                        <span>
-                            DURATION
-                        </span>
-
-                        <strong id="runDuration">
-                            —
-                        </strong>
-
-                    </div>
-
-
-                </div>
-
-            </div>
-
-        </section>
-
-
-
-        <!-- ================= AI ANALYSIS ================= -->
-
-        <section class="section">
-
-            <div class="section-title">
-
-                <div>
-
-                    <p class="eyebrow">
-                        AI INVESTIGATION
-                    </p>
-
-                    <h2>
-                        Build Analysis
-                    </h2>
-
-                </div>
-
-
-                <button
-                        id="analyzeButton"
-                        class="analyze-button"
-                        disabled
-                >
-                    Analyze with AI
-                </button>
-
-            </div>
-
-
-
-            <!-- SUMMARY -->
-
-            <div class="analysis-summary">
-
-                <div class="summary-label">
-                    AI SUMMARY
-                </div>
-
-                <p id="aiSummary">
-                    Select a workflow run and analyze
-                    its processed logs.
-                </p>
-
-            </div>
-
-
-
-            <!-- ROOT CAUSE -->
-
-            <div class="analysis-card">
-
-                <div class="card-heading">
-
-                    <span>
-                        ROOT CAUSE
-                    </span>
-
-                </div>
-
-
-                <h3 id="rootCause">
-                    —
-                </h3>
-
-            </div>
-
-
-
-            <!-- PROBABLE CAUSES -->
-
-            <div class="analysis-card">
-
-                <div class="card-heading">
-
-                    <span>
-                        PROBABLE CAUSES
-                    </span>
-
-                    <small>
-                        AI-estimated from log evidence
-                    </small>
-
-                </div>
-
-
-                <div id="probableCauses">
-
-                    <div class="empty-analysis">
-                        No analysis available.
-                    </div>
-
-                </div>
-
-            </div>
-
-
-
-            <!-- FIXES -->
-
-            <div class="analysis-card">
-
-                <div class="card-heading">
-
-                    <span>
-                        SUGGESTED FIXES
-                    </span>
-
-                </div>
-
-
-                <div id="fixes">
-
-                    <div class="empty-analysis">
-                        No fixes available.
-                    </div>
-
-                </div>
-
-            </div>
-
-
-
-            <!-- WARNINGS + EVIDENCE -->
-
-            <div class="two-column">
-
-
-                <div class="analysis-card">
-
-                    <div class="card-heading">
-
-                        <span>
-                            WARNINGS
-                        </span>
-
-                    </div>
-
-
-                    <div id="warnings">
-
-                        <div class="empty-analysis">
-                            No warnings available.
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-
-                <div class="analysis-card">
-
-                    <div class="card-heading">
-
-                        <span>
-                            EVIDENCE
-                        </span>
-
-                    </div>
-
-
-                    <div id="evidence">
-
-                        <div class="empty-analysis">
-                            No evidence available.
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-        </section>
-
-
-
-        <!-- ================= PROCESSED LOGS ================= -->
-
-        <section class="section">
-
-
-            <div class="section-title">
-
-                <div>
-
-                    <p class="eyebrow">
-                        LOG DATA
-                    </p>
-
-                    <h2>
-                        Processed Logs
-                    </h2>
-
-                    <p>
-                        Relevant log lines extracted and
-                        cleaned before AI analysis.
-                    </p>
-
-                </div>
-
-            </div>
-
-
-            <div class="logs-card">
-
-                <div class="logs-header">
-
-                    <span>
-                        PROCESSED LOGS
-                    </span>
-
-                    <span id="logCount">
-                        0 lines
-                    </span>
-
-                </div>
-
-
-                <pre id="logs">
-Select a workflow run to load processed logs.
-                </pre>
-
-            </div>
-
-        </section>
-
-
-    </main>
-
+        <div class="analysis-block">
+          <h4>🔍 Probable Cause</h4>
+          <p id="rootCause" class="callout">—</p>
+          <div id="probableCauses">
+            <div class="empty-analysis">No analysis available.</div>
+          </div>
+        </div>
+
+        <div class="analysis-block">
+          <h4>📄 Evidence</h4>
+          <div id="evidence">
+            <div class="empty-analysis">No evidence available.</div>
+          </div>
+        </div>
+
+        <div class="analysis-block">
+          <h4>🛠️ Solution</h4>
+          <div id="fixes">
+            <div class="empty-analysis">No fixes available.</div>
+          </div>
+        </div>
+
+        <div class="analysis-block">
+          <h4>➜ Recommended Next Steps</h4>
+          <div id="warnings">
+            <div class="empty-analysis">No warnings available.</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================= PROCESSED LOGS ================= -->
+    <section class="section">
+      <div class="section-title">
+        <h2>Processed Logs</h2>
+      </div>
+
+      <div class="logs-card">
+        <div class="logs-header">
+          <span>Processed Logs</span>
+          <span id="logCount">0 lines</span>
+        </div>
+        <pre id="logs">Select a workflow run to load processed logs.</pre>
+      </div>
+    </section>
+
+  </main>
 </div>
 
-
-<script
-        src="/dashboard/dashboard.js"
-></script>
-
+<script src="/dashboard/dashboard.js"></script>
 </body>
-
 </html>

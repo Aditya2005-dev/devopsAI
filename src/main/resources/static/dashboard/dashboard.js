@@ -11,6 +11,8 @@ document.addEventListener(
     "DOMContentLoaded",
     function () {
 
+        setupTheme();
+
         loadUser();
 
         loadRepositories();
@@ -61,6 +63,71 @@ function setupEvents() {
 
 
 // ============================================
+// THEME (dark / light) — client-side only,
+// persisted in localStorage.
+// ============================================
+
+function setupTheme() {
+
+    const stored =
+        localStorage.getItem("theme");
+
+    if (stored === "light") {
+
+        document.documentElement.setAttribute(
+            "data-theme",
+            "light"
+        );
+    }
+
+
+    const toggle =
+        document.getElementById(
+            "themeToggle"
+        );
+
+    if (!toggle) {
+        return;
+    }
+
+    toggle.addEventListener(
+        "click",
+        function () {
+
+            const isLight =
+                document.documentElement.getAttribute(
+                    "data-theme"
+                ) === "light";
+
+            if (isLight) {
+
+                document.documentElement.removeAttribute(
+                    "data-theme"
+                );
+
+                localStorage.setItem(
+                    "theme",
+                    "dark"
+                );
+
+            } else {
+
+                document.documentElement.setAttribute(
+                    "data-theme",
+                    "light"
+                );
+
+                localStorage.setItem(
+                    "theme",
+                    "light"
+                );
+            }
+        }
+    );
+}
+
+
+// ============================================
 // USER
 // ============================================
 
@@ -86,6 +153,26 @@ function loadUser() {
                 "username"
             ).textContent =
                 user.name || user.login;
+
+
+            const avatar =
+                document.getElementById(
+                    "userAvatar"
+                );
+
+            if (user.avatar_url) {
+
+                avatar.src =
+                    user.avatar_url;
+
+                avatar.alt =
+                    user.name ||
+                    user.login ||
+                    "GitHub avatar";
+
+                avatar.style.display =
+                    "block";
+            }
 
         })
 
@@ -191,6 +278,8 @@ function changeRepository() {
     resetAnalysis();
 
     clearLogs();
+
+    resetPipelineInfo();
 
 
     if (!value) {
@@ -307,6 +396,8 @@ function changeWorkflow() {
     resetAnalysis();
 
     clearLogs();
+
+    resetPipelineInfo();
 
 
     if (!workflowId || !repository) {
@@ -431,6 +522,8 @@ function changeRun() {
 
         clearLogs();
 
+        resetPipelineInfo();
+
         return;
     }
 
@@ -465,6 +558,10 @@ function changeRun() {
 
 
     displayBuildStatus(
+        runData
+    );
+
+    updatePipelineInfo(
         runData
     );
 
@@ -556,6 +653,79 @@ function displayBuildStatus(run) {
             run.created_at,
             run.updated_at
         );
+}
+
+
+// ============================================
+// PIPELINE INFO (repository / workflow / branch / commit)
+// Uses fields already present on the run object
+// returned by the existing backend endpoints.
+// ============================================
+
+function updatePipelineInfo(run) {
+
+    const repository =
+        document.getElementById(
+            "repository"
+        );
+
+    const workflow =
+        document.getElementById(
+            "workflow"
+        );
+
+
+    document.getElementById(
+        "infoRepository"
+    ).textContent =
+        repository.value || "—";
+
+
+    const workflowOption =
+        workflow.options[
+            workflow.selectedIndex
+        ];
+
+    document.getElementById(
+        "infoWorkflow"
+    ).textContent =
+        (workflowOption && workflowOption.value)
+            ? workflowOption.textContent
+            : "—";
+
+
+    document.getElementById(
+        "infoBranch"
+    ).textContent =
+        run.head_branch || "—";
+
+
+    document.getElementById(
+        "infoCommit"
+    ).textContent =
+        run.head_sha
+            ? run.head_sha.substring(0, 7)
+            : "—";
+}
+
+
+function resetPipelineInfo() {
+
+    document.getElementById(
+        "infoRepository"
+    ).textContent = "—";
+
+    document.getElementById(
+        "infoWorkflow"
+    ).textContent = "—";
+
+    document.getElementById(
+        "infoBranch"
+    ).textContent = "—";
+
+    document.getElementById(
+        "infoCommit"
+    ).textContent = "—";
 }
 
 

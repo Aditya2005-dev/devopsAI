@@ -2,27 +2,8 @@ package monitor.devops.service;
 
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.regex.Pattern;
-
 @Service
 public class LogProcessingService {
-
-    private static final Pattern TIMESTAMP_PATTERN =
-            Pattern.compile("^\\d{4}-\\d{2}-\\d{2}T[^ ]+Z\\s*");
-
-    private static final Pattern ANSI_PATTERN =
-            Pattern.compile("\\u001B\\[[;\\d]*m");
-
-    // Maximum number of lines sent to Groq
-    private static final int MAX_LINES = 80;
-
-    // Lines before and after an important line
-    private static final int CONTEXT_LINES = 2;
-
 
     public String processLogs(String logs) {
 
@@ -31,89 +12,46 @@ public class LogProcessingService {
         }
 
         String[] lines = logs.split("\n");
+        StringBuilder result = new StringBuilder();
 
-        Set<Integer> selectedLines = new LinkedHashSet<>();
+        for (String line : lines) {
 
-
-        for (int i = 0; i < lines.length; i++) {
-
-            String line = cleanLine(lines[i]);
+            line = line.trim();
 
             if (line.isEmpty()) {
                 continue;
             }
 
-            if (isImportant(line)) {
+            // Remove GitHub timestamp prefix
+            int end = line.indexOf("Z ");
 
-                int start =
-                        Math.max(0, i - CONTEXT_LINES);
-
-                int end =
-                        Math.min(
-                                lines.length - 1,
-                                i + CONTEXT_LINES
-                        );
-
-                for (int j = start; j <= end; j++) {
-                    selectedLines.add(j);
-                }
-            }
-        }
-
-
-        List<String> result = new ArrayList<>();
-
-        for (Integer index : selectedLines) {
-
-            String line = cleanLine(lines[index]);
-
-            if (!line.isEmpty()) {
-                result.add(line);
+            if (end != -1 && end < 30) {
+                line = line.substring(end + 2);
             }
 
-            if (result.size() >= MAX_LINES) {
+            // Keep important lines
+            String lower = line.toLowerCase();
+
+            if (lower.contains("error")
+                    || lower.contains("exception")
+                    || lower.contains("failed")
+                    || lower.contains("failure")
+                    || lower.contains("warning")
+                    || lower.contains("success")
+                    || lower.contains("build")
+                    || lower.contains("test")
+                    || lower.contains("docker")
+                    || lower.contains("deploy")) {
+
+                result.append(line).append("\n");
+            }
+
+            // Prevent sending huge logs to the LLM
+            if (result.length() >= 12000) {
                 break;
             }
         }
 
-
-        return String.join("\n", result);
-    }
-
-
-    private String cleanLine(String line) {
-
-        line =
-                TIMESTAMP_PATTERN
-                        .matcher(line)
-                        .replaceFirst("");
-
-        line =
-                ANSI_PATTERN
-                        .matcher(line)
-                        .replaceAll("");
-
-        return line.trim();
-    }
-
-
-    private boolean isImportant(String line) {
-
-        String text =
-                line.toLowerCase();
-
-        return text.contains("[error]")
-                || text.contains("exception")
-                || text.contains("warning:")
-                || text.contains("tests run:")
-                || text.contains("build success")
-                || text.contains("build failure")
-                || text.contains("process completed")
-                || text.contains("exit code")
-                || text.contains("compilation")
-                || text.contains("docker build")
-                || text.contains("login succeeded")
-                || text.contains("deployment")
-                || text.contains("deploy");
+        return result.toString();
     }
 }
