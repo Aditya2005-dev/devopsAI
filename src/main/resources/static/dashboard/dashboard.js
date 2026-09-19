@@ -729,6 +729,41 @@ function resetPipelineInfo() {
 }
 
 
+function getAiStatusClass(status) {
+
+    status =
+        String(status)
+            .toLowerCase();
+
+
+    if (status === "success") {
+
+        return "success";
+
+    }
+
+
+    if (
+        status === "failure" ||
+        status === "failed"
+    ) {
+
+        return "failure";
+
+    }
+
+
+    if (status === "warning") {
+
+        return "warning";
+
+    }
+
+
+    return "neutral";
+}
+
+
 function getStatusClass(status) {
 
     status =
@@ -934,107 +969,100 @@ function loadLogs(
 function analyzeLogs() {
 
     if (!currentProcessedLogs) {
-
         return;
-
     }
 
-
     const button =
-        document.getElementById(
-            "analyzeButton"
-        );
-
+        document.getElementById("analyzeButton");
 
     button.disabled = true;
-
-    button.textContent =
-        "Analyzing...";
-
+    button.textContent = "Analyzing...";
 
     resetAnalysisText(
-        "Analyzing processed logs..."
+        "Analyzing workflow logs..."
     );
 
+    fetch("/api/github/analyze", {
+        method: "POST",
 
-    fetch(
-        "/api/github/analyze",
-        {
+        headers: {
+            "Content-Type": "application/json"
+        },
 
-            method: "POST",
+        body: JSON.stringify({
+            logs: currentProcessedLogs
+        })
+    })
 
-            headers: {
-                "Content-Type":
-                    "application/json"
-            },
+    .then(response => {
 
-            body: JSON.stringify({
+        if (!response.ok) {
 
-                logs:
-                    currentProcessedLogs
-
-            })
-
+            return response.text()
+                .then(message => {
+                    throw new Error(message);
+                });
         }
-    )
 
-        .then(response => {
+        return response.text();
+    })
 
-            if (!response.ok) {
+    .then(text => {
 
-                return response
-                    .text()
-                    .then(message => {
+        console.log(
+            "BACKEND RESPONSE:",
+            text
+        );
 
-                        throw new Error(
-                            message
-                        );
+        const cleanText = text
+            .replace(/^"|"$/g, "")
+            .replace(/\\"/g, '"')
+            .replace(/\\n/g, "\n");
 
-                    });
+        const data =
+            JSON.parse(cleanText);
 
-            }
+        console.log(
+            "AI DATA:",
+            data
+        );
 
-            return response.text().then(text => {
-                console.log("BACKEND RESPONSE:", text);
-                return JSON.parse(text.replace(/\\n/g, "\n"));
-            });
+        displayAnalysis(data);
+    })
 
-        })
+    .catch(error => {
 
-        .then(data => {
+        console.error(
+            "AI analysis error:",
+            error
+        );
 
-            displayAnalysis(
-                data
-            );
+        document.getElementById(
+            "aiStatus"
+        ).textContent = "ERROR";
 
-        })
+        document.getElementById(
+            "aiStatus"
+        ).className =
+            "build-status failure";
 
-        .catch(error => {
+        document.getElementById(
+            "aiSummary"
+        ).textContent =
+            "AI analysis could not be completed.";
 
-            console.error(error);
+        document.getElementById(
+            "rootCause"
+        ).textContent =
+            "Unable to analyze logs.";
+    })
 
+    .finally(() => {
 
-            document.getElementById(
-                "aiSummary"
-            ).textContent =
-                "AI analysis could not be completed.";
-
-
-            document.getElementById(
-                "rootCause"
-            ).textContent =
-                "Unable to analyze logs.";
-
-        })
-
-        .finally(() => {
-
-            button.disabled = false;
-
-            button.textContent =
-                "Analyze with AI";
-
-        });
+        button.disabled = false;
+        button.textContent =
+            "Analyze with AI";
+    });
 }
 
 
@@ -1043,6 +1071,22 @@ function analyzeLogs() {
 // ============================================
 
 function displayAnalysis(data) {
+
+    const statusEl =
+        document.getElementById(
+            "aiStatus"
+        );
+
+    const statusValue =
+        data.status || "UNKNOWN";
+
+    statusEl.textContent =
+        String(statusValue).toUpperCase();
+
+    statusEl.className =
+        "build-status " +
+        getAiStatusClass(statusValue);
+
 
     document.getElementById(
         "aiSummary"
@@ -1289,9 +1333,20 @@ function displayList(
 function resetAnalysis() {
 
     document.getElementById(
+        "aiStatus"
+    ).textContent =
+        "NOT ANALYZED";
+
+    document.getElementById(
+        "aiStatus"
+    ).className =
+        "build-status neutral";
+
+
+    document.getElementById(
         "aiSummary"
     ).textContent =
-        "Select a workflow run and analyze its processed logs.";
+        "Run AI analysis to investigate this workflow.";
 
 
     document.getElementById(
@@ -1326,6 +1381,17 @@ function resetAnalysis() {
 
 
 function resetAnalysisText(text) {
+
+    document.getElementById(
+        "aiStatus"
+    ).textContent =
+        "ANALYZING...";
+
+    document.getElementById(
+        "aiStatus"
+    ).className =
+        "build-status neutral";
+
 
     document.getElementById(
         "aiSummary"

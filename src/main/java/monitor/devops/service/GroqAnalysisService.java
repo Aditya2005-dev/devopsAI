@@ -1,14 +1,15 @@
 package monitor.devops.service;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Service
 public class GroqAnalysisService {
@@ -24,109 +25,206 @@ public class GroqAnalysisService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    public String analyzeLogs(String logs) {
+    public String analyzeLogs(String processedLogs) {
 
-        if (logs == null || logs.isBlank())
-            return error("No logs available.");
+        if (processedLogs == null || processedLogs.isBlank()) {
+            return """
+                    {
+                      "status": "UNKNOWN",
+                      "summary": "No processed logs available.",
+                      "rootCause": "Not available",
+                      "probableCauses": [],
+                      "fixes": [],
+                      "warnings": [],
+                      "evidence": []
+                    }
+                    """;
+        }
 
         String prompt = """
-                Analyze these GitHub Actions logs.
-                Use only the supplied logs.
+                Analyze these GitHub Actions processed logs.
+
+                Use ONLY the supplied logs.
                 Do not invent problems.
-                Return ONLY valid JSON.
+
+                Return ONLY valid JSON:
 
                 {
-                  "status":"SUCCESS or FAILURE or WARNING",
-                  "summary":"short summary",
-                  "rootCause":"root cause or No failure detected",
-                  "probableCauses":[
-                    {"cause":"name","percentage":70,"reason":"reason"}
+                  "status": "SUCCESS or FAILURE or WARNING",
+                  "summary": "short summary",
+                  "rootCause": "probable root cause or No failure detected",
+                  "probableCauses": [
+                    {
+                      "cause": "cause name",
+                      "percentage": 70,
+                      "reason": "reason from logs"
+                    }
                   ],
-                  "fixes":["fix"],
-                  "warnings":["warning"],
-                  "evidence":["log evidence"]
+                  "fixes": [
+                    "specific fix"
+                  ],
+                  "warnings": [
+                    "important warning"
+                  ],
+                  "evidence": [
+                    "important log line"
+                  ]
                 }
 
-                Percentages must add to 100.
+                Rules:
+                - Use 1 to 3 probable causes.
+                - Percentages must add up to 100.
+                - Do not invent causes.
+                - If there is no failure, probableCauses can be empty.
+                - If successful, rootCause should be "No failure detected".
+                - Give short practical fixes.
 
-                LOGS:
-                """ + logs;
+                PROCESSED LOGS:
+                ----------------
+                """ + processedLogs;
 
         try {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setBearerAuth(apiKey);
-            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("Content-Type", "application/json");
 
-            Map<String,Object> body = Map.of(
-                    "model", model,
-                    "messages", List.of(
-                            Map.of(
-                                    "role", "system",
-                                    "content", "You are a DevOps log analyzer. Return only JSON."
+            Map<String, Object> requestBody =
+                    Map.of(
+                            "model", model,
+                            "messages",
+                            List.of(
+                                    Map.of(
+                                            "role", "system",
+                                            "content",
+                                            "You are a DevOps CI/CD log analyzer. Return only valid JSON."
+                                    ),
+                                    Map.of(
+                                            "role", "user",
+                                            "content", prompt
+                                    )
                             ),
-                            Map.of(
-                                    "role", "user",
-                                    "content", prompt
-                            )
-                    ),
-                    "temperature", 0.1,
-                    "max_tokens", 800
-            );
+                            "temperature", 0.1,
+                            "max_tokens", 600,
+                            "reasoning_effort", "low"
+                    );
+
+            HttpEntity<Map<String, Object>> request =
+                    new HttpEntity<>(requestBody, headers);
 
             ResponseEntity<String> response =
                     restTemplate.exchange(
                             apiUrl,
                             HttpMethod.POST,
-                            new HttpEntity<>(body, headers),
+                            request,
                             String.class
                     );
 
-            return extractContent(response.getBody());
+            String responseBody = response.getBody();
+
+            if (responseBody == null) {
+                return errorResponse("Empty response from Groq.");
+            }
+
+            return extractContent(responseBody);
 
         } catch (Exception e) {
-            return error(e.getMessage());
+            return errorResponse(e.getMessage());
         }
     }
 
-    private String extractContent(String response) {
+private String extractContent(String response) {
 
-    Pattern pattern = Pattern.compile(
-        "\"content\"\\s*:\\s*\"((?:\\\\.|[^\"\\\\])*)\""
-    );
+    try {
 
-    Matcher matcher = pattern.matcher(response);
+        int contentStart =
+                response.indexOf("\"content\"");
 
-    if (!matcher.find()) {
-        return error("AI content not found.");
+        if (contentStart == -1) {
+            return errorResponse(
+                    "Groq response did not contain AI content."
+            );
+        }
+
+        int start =
+                response.indexOf("{", contentStart);
+
+        if (start == -1) {
+            return errorResponse(
+                    "AI JSON content not found."
+            );
+        }
+
+        int depth = 0;
+        boolean insideString = false;
+        boolean escaped = false;
+
+        for (int i = start; i < response.length(); i++) {
+
+            char c = response.charAt(i);
+
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+
+            if (c == '\\') {
+                escaped = true;
+                continue;
+            }
+
+            if (c == '"') {
+                insideString = !insideString;
+                continue;
+            }
+
+            if (!insideString) {
+
+                if (c == '{') {
+                    depth++;
+                }
+
+                if (c == '}') {
+                    depth--;
+
+                    if (depth == 0) {
+
+                        return response
+                                .substring(start, i + 1)
+                                .replace("\\n", "\n")
+                                .replace("\\\"", "\"")
+                                .trim();
+                    }
+                }
+            }
+        }
+
+        return errorResponse(
+                "Incomplete JSON returned by Groq."
+        );
+
+    } catch (Exception e) {
+
+        return errorResponse(
+                e.getMessage()
+        );
     }
-
-    String content = matcher.group(1);
-
-    content = content
-        .replace("\\\"", "\"")
-        .replace("\\\\", "\\");
-
-    content = content
-        .replace("```json", "")
-        .replace("```", "")
-        .trim();
-
-    return content;
 }
 
-    private String error(String message) {
+    private String errorResponse(String message) {
 
         return """
                 {
-                  "status":"ERROR",
-                  "summary":"AI analysis failed.",
-                  "rootCause":"Groq API error",
-                  "probableCauses":[],
-                  "fixes":["Check Groq API configuration."],
-                  "warnings":["%s"],
-                  "evidence":[]
+                  "status": "ERROR",
+                  "summary": "AI analysis failed.",
+                  "rootCause": "Groq API error",
+                  "probableCauses": [],
+                  "fixes": ["Check Groq API configuration or try again later."],
+                  "warnings": ["%s"],
+                  "evidence": []
                 }
-                """.formatted(message);
+                """.formatted(
+                message == null ? "Unknown error" : message
+        );
     }
 }

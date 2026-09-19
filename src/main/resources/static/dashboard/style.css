@@ -143,7 +143,7 @@ body {
 /* ========== MAIN ========== */
 
 .main {
-  width: min(1200px, calc(100% - 48px));
+  width: min(1100px, calc(100% - 48px));
   margin: 0 auto;
   padding: 32px 0 60px;
 }
@@ -161,9 +161,9 @@ body {
 .heading h1 {
   margin-bottom: 8px;
   color: var(--text-primary);
-  font-size: 32px;
+  font-size: 30px;
   font-weight: 700;
-  letter-spacing: -0.8px;
+  letter-spacing: -0.7px;
 }
 
 .heading p:not(.eyebrow) { color: var(--text-secondary); font-size: 14px; line-height: 1.6; }
@@ -174,12 +174,12 @@ body {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 14px;
-  margin-bottom: 30px;
+  margin-bottom: 26px;
 }
 
 .selector {
   min-width: 0;
-  padding: 16px;
+  padding: 14px 16px;
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -187,7 +187,7 @@ body {
 
 .selector label {
   display: block;
-  margin-bottom: 9px;
+  margin-bottom: 8px;
   color: var(--text-muted);
   font-size: 10px;
   font-weight: 700;
@@ -196,7 +196,7 @@ body {
 
 .selector select {
   width: 100%;
-  height: 40px;
+  height: 38px;
   padding: 0 12px;
   background: var(--bg-elevated);
   color: var(--text-primary);
@@ -212,63 +212,48 @@ body {
 
 /* ========== SECTIONS ========== */
 
-.section { margin-top: 28px; }
+.section { margin-top: 22px; }
 
 .section-title {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
-.section-title h2 { color: var(--text-primary); font-size: 18px; font-weight: 650; }
+.section-title h2 { color: var(--text-primary); font-size: 15px; font-weight: 650; }
 
-/* ========== BUILD & PIPELINE INFO ========== */
+.section-subtitle { margin-top: 4px; color: var(--text-secondary); font-size: 12.5px; }
 
-.build-card {
-  padding: 24px;
+/* ========== RUN OVERVIEW (compact, secondary) ========== */
+
+.overview-card {
+  padding: 18px 20px;
   background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 10px;
 }
 
-.build-top {
-  padding-bottom: 20px;
-  margin-bottom: 20px;
-  border-bottom: 1px solid var(--border);
-}
-
-.build-status {
-  display: inline-block;
-  width: fit-content;
+.overview-top {
+  padding-bottom: 14px;
   margin-bottom: 14px;
-  padding: 7px 11px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.8px;
+  border-bottom: 1px solid var(--border-soft);
 }
 
-.build-status.success { color: var(--success); background: var(--success-bg); }
-.build-status.failure { color: var(--failure); background: var(--failure-bg); }
-.build-status.running { color: var(--running); background: var(--running-bg); }
-.build-status.neutral { color: var(--neutral); background: var(--neutral-bg); }
+.overview-top h3 { margin: 10px 0 4px; color: var(--text-primary); font-size: 15px; }
+.overview-top p { color: var(--text-secondary); font-size: 12px; line-height: 1.55; }
 
-.build-top h3 { margin-bottom: 7px; color: var(--text-primary); font-size: 19px; }
-.build-top p { color: var(--text-secondary); font-size: 13px; line-height: 1.6; }
-
-.build-grid {
+.overview-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 18px 20px;
+  gap: 14px 18px;
 }
 
-.build-grid div { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.overview-grid div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.overview-grid span { color: var(--text-muted); font-size: 9px; font-weight: 700; letter-spacing: 1px; }
 
-.build-grid span { color: var(--text-muted); font-size: 9px; font-weight: 700; letter-spacing: 1px; }
-
-.build-grid strong {
+.overview-grid strong {
   overflow: hidden;
   color: var(--text-primary);
   font-size: 12px;
@@ -277,17 +262,35 @@ body {
   white-space: nowrap;
 }
 
+/* ========== STATUS BADGE (shared: run status + AI status) ========== */
+
+.build-status {
+  display: inline-block;
+  width: fit-content;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+}
+
+.build-status.success { color: var(--success); background: var(--success-bg); }
+.build-status.failure { color: var(--failure); background: var(--failure-bg); }
+.build-status.running,
+.build-status.warning { color: var(--running); background: var(--running-bg); }
+.build-status.neutral { color: var(--neutral); background: var(--neutral-bg); }
+
 /* ========== ANALYZE BUTTON ========== */
 
 .analyze-button {
-  min-width: 120px;
-  height: 36px;
-  padding: 0 16px;
+  min-width: 130px;
+  height: 38px;
+  padding: 0 18px;
   border: none;
   border-radius: 7px;
   background: var(--accent);
   color: #fff;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 650;
   cursor: pointer;
 }
@@ -295,17 +298,21 @@ body {
 .analyze-button:hover:not(:disabled) { background: var(--accent-hover); }
 .analyze-button:disabled { opacity: 0.4; cursor: not-allowed; }
 
-/* ========== AI ANALYSIS CARD ========== */
+/* ========== AI INVESTIGATION — primary, larger section ========== */
+
+.ai-section { margin-top: 30px; }
+.ai-section .section-title h2 { font-size: 20px; }
 
 .analysis-card {
-  padding: 6px 24px;
+  padding: 8px 30px;
   background: var(--card-bg);
   border: 1px solid var(--border);
+  border-top: 2px solid var(--accent);
   border-radius: 12px;
 }
 
 .analysis-block {
-  padding: 20px 0;
+  padding: 24px 0;
   border-bottom: 1px solid var(--border-soft);
 }
 
@@ -322,17 +329,17 @@ body {
 
 .analysis-block > p {
   color: var(--text-primary);
-  font-size: 14px;
-  line-height: 1.65;
+  font-size: 14.5px;
+  line-height: 1.7;
 }
 
 .callout {
-  padding: 12px 14px;
-  margin-bottom: 14px;
+  padding: 14px 16px;
   background: var(--card-bg-alt);
   border-left: 3px solid var(--accent);
   border-radius: 6px;
   font-weight: 600;
+  font-size: 15px !important;
 }
 
 .empty-analysis { color: var(--text-faint); font-size: 12px; }
@@ -372,15 +379,15 @@ body {
 
 .cause-row p { color: var(--text-muted); font-size: 11px; line-height: 1.5; }
 
-/* ---- fixes / warnings / evidence lists ---- */
+/* ---- generic list (bulleted) ---- */
 
 .list-item {
   position: relative;
   padding: 10px 0 10px 16px;
   color: var(--text-secondary);
   border-bottom: 1px solid var(--border-soft);
-  font-size: 12px;
-  line-height: 1.55;
+  font-size: 12.5px;
+  line-height: 1.6;
 }
 
 .list-item::before {
@@ -392,7 +399,33 @@ body {
 
 .list-item:last-child { border-bottom: none; }
 
-/* ========== PROCESSED LOGS ========== */
+/* ---- suggested fixes: numbered ---- */
+
+#fixes { counter-reset: fix-counter; }
+#fixes .list-item { counter-increment: fix-counter; padding-left: 22px; }
+#fixes .list-item::before {
+  content: counter(fix-counter) ".";
+  color: var(--accent-soft);
+  font-weight: 700;
+}
+
+/* ---- evidence: code-style block ---- */
+
+#evidence .list-item {
+  padding: 9px 11px;
+  margin-bottom: 6px;
+  border-bottom: none;
+  border-radius: 6px;
+  background: var(--logs-bg);
+  color: var(--text-secondary);
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 11.5px;
+}
+
+#evidence .list-item::before { content: none; }
+#evidence .list-item:last-child { margin-bottom: 0; }
+
+/* ========== PROCESSED LOGS (supporting, below AI) ========== */
 
 .logs-card {
   overflow: hidden;
@@ -402,8 +435,8 @@ body {
 }
 
 .logs-header {
-  height: 44px;
-  padding: 0 17px;
+  height: 42px;
+  padding: 0 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -416,10 +449,10 @@ body {
 
 .logs-card pre {
   width: 100%;
-  min-height: 320px;
-  max-height: 520px;
+  min-height: 260px;
+  max-height: 420px;
   margin: 0;
-  padding: 20px;
+  padding: 18px;
   overflow: auto;
   background: var(--logs-bg);
   color: var(--text-secondary);
@@ -441,7 +474,8 @@ body {
 @media (max-width: 900px) {
   .main { width: calc(100% - 32px); }
   .selectors { grid-template-columns: 1fr; }
-  .build-grid { grid-template-columns: repeat(2, 1fr); }
+  .overview-grid { grid-template-columns: repeat(2, 1fr); }
+  .analysis-card { padding: 6px 22px; }
 }
 
 @media (max-width: 600px) {
@@ -453,10 +487,12 @@ body {
   .topbar-right { gap: 10px; }
 
   .main { width: calc(100% - 24px); padding: 25px 0 40px; }
-  .heading h1 { font-size: 25px; }
+  .heading h1 { font-size: 24px; }
 
-  .build-grid { grid-template-columns: 1fr; }
+  .overview-grid { grid-template-columns: 1fr; }
   .section-title { align-items: flex-start; flex-direction: column; gap: 12px; }
   .analyze-button { width: 100%; }
-  .build-card, .analysis-card { padding: 18px; }
+  .overview-card { padding: 16px; }
+  .analysis-card { padding: 6px 16px; }
+  .ai-section .section-title h2 { font-size: 18px; }
 }

@@ -22,14 +22,12 @@ public class LogProcessingService {
                 continue;
             }
 
-            // Remove GitHub timestamp prefix
             int end = line.indexOf("Z ");
 
             if (end != -1 && end < 30) {
                 line = line.substring(end + 2);
             }
 
-            // Keep important lines
             String lower = line.toLowerCase();
 
             if (lower.contains("error")
@@ -46,8 +44,7 @@ public class LogProcessingService {
                 result.append(line).append("\n");
             }
 
-            // Prevent sending huge logs to the LLM
-            if (result.length() >= 12000) {
+            if (result.length() >= 8000) {
                 break;
             }
         }
