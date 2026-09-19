@@ -1,102 +1,139 @@
-DevOps Monitor
+# DevOps Monitor
 
-AI-Assisted CI/CD Failure Investigator for GitHub Actions
+## AI-Assisted CI/CD Failure Investigator
 
-DevOps Monitor connects to GitHub, retrieves real GitHub Actions workflow data and execution logs, processes relevant log information, and uses an LLM through Groq to help investigate CI/CD failures.
+DevOps Monitor is a web application that helps developers investigate failed GitHub Actions workflow runs.
 
-Project Overview
+It connects to GitHub using OAuth, retrieves real GitHub Actions workflow data and logs, processes the logs, and uses an LLM through Groq to identify probable problems, root causes, evidence, warnings, and possible fixes.
 
-The application provides a simple dashboard for investigating GitHub Actions workflow runs.
+---
 
-Instead of manually searching through large CI/CD logs, users can select a repository, workflow, and workflow run and receive an AI-assisted analysis containing the probable root cause, supporting evidence, warnings, and suggested fixes.
+## Project Overview
 
-Features
-GitHub OAuth authentication
-GitHub repository selection
-Workflow selection
-Workflow run selection
-Real GitHub Actions logs
-Log processing and filtering
-LLM-based CI/CD log analysis
-Probable root cause identification
-Suggested fixes
-Warnings and supporting evidence
-Dockerized Spring Boot application
-Render deployment
+Debugging CI/CD failures often requires manually searching through large GitHub Actions logs.
+
+DevOps Monitor simplifies this process by providing a dashboard where users can:
+
+1. Sign in with GitHub
+2. Select a repository
+3. Select a GitHub Actions workflow
+4. Select a workflow run
+5. Retrieve the workflow logs
+6. Process the logs
+7. Analyze the logs using an LLM
+8. View the investigation results in a structured dashboard
+
+---
+
+## Features
+
+- GitHub OAuth authentication
+- GitHub repository selection
+- GitHub Actions workflow selection
+- Workflow run selection
+- Real GitHub Actions logs
+- Log processing and filtering
+- AI-assisted CI/CD log analysis
+- Probable root cause identification
+- Suggested fixes
+- Warnings
+- Supporting evidence
+- Docker containerization
+- Render deployment
+
+---
 
 
                          GitHub
                            │
-                     GitHub OAuth
-                           │
+                           │ GitHub OAuth
                            ▼
-                  ┌─────────────────┐
-                  │   Spring Boot   │
-                  │     Backend     │
-                  └────────┬────────┘
-                           │
-                    GitHub REST APIs
-                           │
-                           ▼
-                  Workflow Run Logs
-                           │
-                           ▼
-                 Log Processing Service
-                           │
-                           ▼
-                      Groq LLM API
-                           │
-                           ▼
-                   AI Investigation
-                           │
-                           ▼
-                       Dashboard
+                  ┌───────────────────┐
+                  │    Spring Boot    │
+                  │      Backend      │
+                  └─────────┬─────────┘
+                            │
+                            │ GitHub REST API
+                            ▼
+                  ┌───────────────────┐
+                  │ Workflow / Runs   │
+                  │      / Logs       │
+                  └─────────┬─────────┘
+                            │
+                            ▼
+                  ┌───────────────────┐
+                  │ Log Processing    │
+                  │     Service       │
+                  └─────────┬─────────┘
+                            │
+                            ▼
+                  ┌───────────────────┐
+                  │     Groq LLM      │
+                  │     Analysis      │
+                  └─────────┬─────────┘
+                            │
+                            ▼
+                  ┌───────────────────┐
+                  │     Dashboard     │
+                  │ Root Cause / Fix  │
+                  │ Evidence / Issues │
+                  └───────────────────┘
 
-Tech Stack
-Backend
-Java
-Spring Boot
-REST APIs
-Spring Security
-GitHub OAuth
-Frontend
-HTML
-CSS
-JavaScript
-LLM
-Groq API
-openai/gpt-oss-120b
-DevOps & Deployment
-Docker
-GitHub Actions
-Render
-AI / LLM Integration
+
+                  ## Tech Stack
+
+### Backend
+
+- Java
+- Spring Boot
+- Spring Security
+- REST APIs
+- GitHub OAuth
+
+### Frontend
+
+- HTML
+- CSS
+- JavaScript
+
+### AI / LLM
+
+- Groq API
+- `openai/gpt-oss-120b`
+
+### DevOps & Deployment
+
+- Docker
+- GitHub Actions
+- Render
+
+---
+
+## AI / LLM Integration
 
 The application sends processed GitHub Actions logs to the Groq LLM.
 
-The model analyzes the supplied logs and returns structured information such as:
+The model analyzes the supplied logs and returns structured information about the workflow execution.
 
+### Example Response
+
+```json
 {
   "status": "FAILURE",
   "summary": "Build failed during dependency resolution.",
   "rootCause": "Dependency resolution failure",
-  "probableCauses": [],
+  "probableCauses": [
+    {
+      "cause": "Invalid dependency configuration",
+      "percentage": 70,
+      "reason": "The logs indicate that dependency resolution failed."
+    }
+  ],
   "fixes": [
     "Verify the dependency version and repository configuration."
   ],
   "warnings": [],
-  "evidence": []
+  "evidence": [
+    "Dependency resolution failed"
+  ]
 }
-
-The dashboard displays:
-
-Status
-Summary
-Root Cause
-Probable Causes
-Suggested Fixes
-Warnings
-Evidence
-
-The LLM is instructed to use the supplied logs as evidence and avoid inventing failures.
-                       
