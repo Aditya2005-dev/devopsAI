@@ -47,7 +47,22 @@ public class GroqAnalysisService {
                 Use ONLY the supplied logs.
                 Do not invent problems.
 
-                Return ONLY valid JSON:
+                Return ONLY valid JSON.
+                Do not use markdown or code fences.
+
+                IMPORTANT JSON RULES:
+                - The response must be valid JSON.
+                - Every string must use valid JSON escaping.
+                - Never put unescaped double quotes inside a JSON string.
+                - Do not use markdown links.
+                - Do not return URLs using [text](url) format.
+                - Keep evidence short and concise.
+                - Do not copy complicated escaping from the logs.
+                - If a log contains a long URL, summarize it instead.
+                - Do not include raw Docker registry URLs in the response.
+                - Do not include backticks in JSON values.
+
+                Return exactly this structure:
 
                 {
                   "status": "SUCCESS or FAILURE or WARNING",
@@ -57,7 +72,7 @@ public class GroqAnalysisService {
                     {
                       "cause": "cause name",
                       "percentage": 70,
-                      "reason": "reason from logs"
+                      "reason": "short reason based on logs"
                     }
                   ],
                   "fixes": [
@@ -67,7 +82,7 @@ public class GroqAnalysisService {
                     "important warning"
                   ],
                   "evidence": [
-                    "important log line"
+                    "short important log line"
                   ]
                 }
 
@@ -76,8 +91,14 @@ public class GroqAnalysisService {
                 - Percentages must add up to 100.
                 - Do not invent causes.
                 - If there is no failure, probableCauses can be empty.
-                - If successful, rootCause should be "No failure detected".
+                - If successful, rootCause must be "No failure detected".
                 - Give short practical fixes.
+                - Keep evidence concise.
+                - Prefer summarizing long technical lines instead of copying them.
+                - If the failure is Docker authentication, describe it as:
+                  "Docker registry authentication failed."
+                - If the failure is a test failure, identify the failed test if available.
+                - If the failure is a deployment failure, identify the deployment problem if available.
 
                 PROCESSED LOGS:
                 ----------------
@@ -86,31 +107,57 @@ public class GroqAnalysisService {
         try {
 
             HttpHeaders headers = new HttpHeaders();
+
             headers.setBearerAuth(apiKey);
             headers.set("Content-Type", "application/json");
 
             Map<String, Object> requestBody =
                     Map.of(
-                            "model", model,
+                            "model",
+                            model,
+
                             "messages",
                             List.of(
                                     Map.of(
-                                            "role", "system",
+                                            "role",
+                                            "system",
+
                                             "content",
-                                            "You are a DevOps CI/CD log analyzer. Return only valid JSON."
+                                            """
+                                            You are a DevOps CI/CD log analyzer.
+
+                                            Return ONLY valid JSON.
+                                            Never return markdown.
+                                            Never return code fences.
+                                            Never return malformed JSON.
+                                            Keep evidence short and readable.
+                                            """
                                     ),
+
                                     Map.of(
-                                            "role", "user",
-                                            "content", prompt
+                                            "role",
+                                            "user",
+
+                                            "content",
+                                            prompt
                                     )
                             ),
-                            "temperature", 0.1,
-                            "max_tokens", 600,
-                            "reasoning_effort", "low"
+
+                            "temperature",
+                            0.1,
+
+                            "max_tokens",
+                            600,
+
+                            "reasoning_effort",
+                            "low"
                     );
 
             HttpEntity<Map<String, Object>> request =
-                    new HttpEntity<>(requestBody, headers);
+                    new HttpEntity<>(
+                            requestBody,
+                            headers
+                    );
 
             ResponseEntity<String> response =
                     restTemplate.exchange(
@@ -120,98 +167,134 @@ public class GroqAnalysisService {
                             String.class
                     );
 
-            String responseBody = response.getBody();
+            String responseBody =
+                    response.getBody();
 
-            if (responseBody == null) {
-                return errorResponse("Empty response from Groq.");
+            if (responseBody == null ||
+                    responseBody.isBlank()) {
+
+                return errorResponse(
+                        "Empty response from Groq."
+                );
             }
 
             return extractContent(responseBody);
 
         } catch (Exception e) {
-            return errorResponse(e.getMessage());
+
+            return errorResponse(
+                    e.getMessage()
+            );
         }
     }
 
-private String extractContent(String response) {
 
-    try {
+    private String extractContent(String response) {
 
-        int contentStart =
-                response.indexOf("\"content\"");
+        try {
 
-        if (contentStart == -1) {
-            return errorResponse(
-                    "Groq response did not contain AI content."
-            );
-        }
+            int contentStart =
+                    response.indexOf("\"content\"");
 
-        int start =
-                response.indexOf("{", contentStart);
+            if (contentStart == -1) {
 
-        if (start == -1) {
-            return errorResponse(
-                    "AI JSON content not found."
-            );
-        }
-
-        int depth = 0;
-        boolean insideString = false;
-        boolean escaped = false;
-
-        for (int i = start; i < response.length(); i++) {
-
-            char c = response.charAt(i);
-
-            if (escaped) {
-                escaped = false;
-                continue;
+                return errorResponse(
+                        "Groq response did not contain AI content."
+                );
             }
 
-            if (c == '\\') {
-                escaped = true;
-                continue;
+            int start =
+                    response.indexOf(
+                            "{",
+                            contentStart
+                    );
+
+            if (start == -1) {
+
+                return errorResponse(
+                        "AI JSON content not found."
+                );
             }
 
-            if (c == '"') {
-                insideString = !insideString;
-                continue;
-            }
+            int depth = 0;
 
-            if (!insideString) {
+            boolean insideString = false;
+            boolean escaped = false;
 
-                if (c == '{') {
-                    depth++;
+            for (
+                    int i = start;
+                    i < response.length();
+                    i++
+            ) {
+
+                char c = response.charAt(i);
+
+                if (escaped) {
+                    escaped = false;
+                    continue;
                 }
 
-                if (c == '}') {
-                    depth--;
+                if (c == '\\') {
+                    escaped = true;
+                    continue;
+                }
 
-                    if (depth == 0) {
+                if (c == '"') {
+                    insideString = !insideString;
+                    continue;
+                }
 
-                        return response
-                                .substring(start, i + 1)
-                                .replace("\\n", "\n")
-                                .replace("\\\"", "\"")
-                                .trim();
+                if (!insideString) {
+
+                    if (c == '{') {
+                        depth++;
+                    }
+
+                    if (c == '}') {
+
+                        depth--;
+
+                        if (depth == 0) {
+
+                            return response
+                                    .substring(
+                                            start,
+                                            i + 1
+                                    )
+                                    .trim();
+                        }
                     }
                 }
             }
+
+            return errorResponse(
+                    "Incomplete JSON returned by Groq."
+            );
+
+        } catch (Exception e) {
+
+            return errorResponse(
+                    e.getMessage()
+            );
         }
-
-        return errorResponse(
-                "Incomplete JSON returned by Groq."
-        );
-
-    } catch (Exception e) {
-
-        return errorResponse(
-                e.getMessage()
-        );
     }
-}
 
-    private String errorResponse(String message) {
+
+    private String errorResponse(
+            String message) {
+
+        /*
+         * Prevent an exception message containing quotes,
+         * newlines or backslashes from breaking our JSON.
+         */
+        String safeMessage =
+                message == null
+                        ? "Unknown error"
+                        : message
+                        .replace("\\", "\\\\")
+                        .replace("\"", "\\\"")
+                        .replace("\r", " ")
+                        .replace("\n", " ");
 
         return """
                 {
@@ -219,12 +302,16 @@ private String extractContent(String response) {
                   "summary": "AI analysis failed.",
                   "rootCause": "Groq API error",
                   "probableCauses": [],
-                  "fixes": ["Check Groq API configuration or try again later."],
-                  "warnings": ["%s"],
+                  "fixes": [
+                    "Check Groq API configuration or try again later."
+                  ],
+                  "warnings": [
+                    "%s"
+                  ],
                   "evidence": []
                 }
                 """.formatted(
-                message == null ? "Unknown error" : message
+                safeMessage
         );
     }
 }
