@@ -260,14 +260,55 @@ function analyzeLogs() {
 
     const button = document.getElementById("analyzeButton");
 
-    // Remember which run we are analyzing.
-    // Prevents an old AI response from appearing for a newly selected run.
     const analyzingRunId = currentRun.runId;
+
+    // Get the ACTUAL GitHub Actions run conclusion
+    const runConclusion =
+        currentRun.data.conclusion ||
+        currentRun.data.status ||
+        "unknown";
+
+    const workflowStatus = String(runConclusion).toLowerCase();
 
     button.disabled = true;
     button.textContent = "Analyzing...";
 
     resetAnalysisText("Analyzing workflow logs...");
+
+    /*
+     * Important:
+     * The logs can contain successful individual job/step messages
+     * even when the overall GitHub Actions workflow failed.
+     *
+     * Therefore explicitly provide the overall GitHub run status
+     * to the AI together with the logs.
+     */
+    const analysisInput = `
+IMPORTANT GITHUB ACTIONS RUN INFORMATION
+
+Overall workflow/run status:
+${workflowStatus.toUpperCase()}
+
+Repository:
+${currentRun.owner}/${currentRun.repo}
+
+Run ID:
+${currentRun.runId}
+
+The overall GitHub Actions run status above is authoritative.
+Individual jobs or steps inside the logs may show "success".
+Do NOT treat an individual "job-status: success" message as proof
+that the entire workflow succeeded.
+
+Analyze the following processed logs for the actual reason for the
+overall workflow result:
+
+----- PROCESSED LOGS START -----
+
+${currentProcessedLogs}
+
+----- PROCESSED LOGS END -----
+`;
 
     fetch("/api/github/analyze", {
         method: "POST",
@@ -275,7 +316,7 @@ function analyzeLogs() {
             "Content-Type": "application/json"
         },
         body: JSON.stringify({
-            logs: currentProcessedLogs
+            logs: analysisInput
         })
     })
         .then(response => {
@@ -294,45 +335,47 @@ function analyzeLogs() {
             let data;
 
             try {
-                // First attempt:
-                // Backend normally returns JSON directly.
                 data = JSON.parse(text);
-            } catch (firstError) {
 
-                // Some backends return a JSON string containing JSON.
-                // Example:
-                // "{\"status\":\"FAILURE\",...}"
-                try {
-                    const parsedOnce = JSON.parse(text);
-
-                    if (typeof parsedOnce === "string") {
-                        data = JSON.parse(parsedOnce);
-                    } else {
-                        data = parsedOnce;
-                    }
-
-                } catch (secondError) {
-                    console.error("Invalid AI JSON response:", text);
-                    throw new Error("Backend returned invalid AI analysis JSON.");
+                // Handles the case where backend returns JSON
+                // encoded as a JSON string.
+                if (typeof data === "string") {
+                    data = JSON.parse(data);
                 }
+
+            } catch (error) {
+                console.error("Invalid AI JSON:", text);
+                throw new Error("Invalid AI response received.");
             }
 
-            // Make sure this response still belongs to
-            // the run that the user is currently viewing.
+            // Ignore response if user changed the selected run
+            // while AI was processing.
             if (!currentRun || currentRun.runId !== analyzingRunId) {
-                console.warn("Ignoring AI response for an old pipeline run.");
+                console.warn("Ignoring analysis for old run.");
                 return;
             }
 
-            console.log("Parsed AI response:", data);
+            /*
+             * The GitHub run conclusion is authoritative for the
+             * dashboard status.
+             *
+             * AI should explain the failure, not redefine the
+             * GitHub Actions run status.
+             */
+            if (
+                workflowStatus === "failure" ||
+                workflowStatus === "failed"
+            ) {
+                data.status = "FAILURE";
+            } else if (workflowStatus === "success") {
+                data.status = "SUCCESS";
+            }
 
             displayAnalysis(data);
         })
         .catch(error => {
             console.error("AI analysis error:", error);
 
-            // Don't overwrite the currently selected run
-            // with an error belonging to an old request.
             if (!currentRun || currentRun.runId !== analyzingRunId) {
                 return;
             }
