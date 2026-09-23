@@ -3,28 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DevOps Monitor</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>◈</text></svg>">
-  <link rel="stylesheet" href="/dashboard/style.css">
+  <title>Pipeline Insight</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="app">
 
   <header class="topbar">
     <div class="brand">
-      <div class="brand-symbol">◈</div>
-      <div>
-        <h2>DevOps Monitor</h2>
-        <span>CI/CD Intelligence</span>
-      </div>
+      <div class="brand-mark">&gt;_</div>
+      <span>Pipeline Insight</span>
     </div>
 
     <div class="topbar-right">
       <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle theme" title="Toggle theme">
-        <span class="theme-icon-dark">🌙</span>
-        <span class="theme-icon-light">☀️</span>
+        <span class="theme-icon-dark">◐</span>
+        <span class="theme-icon-light">◑</span>
       </button>
-
       <div class="github-user">
         <img id="userAvatar" class="avatar" alt="">
         <span id="username">GitHub User</span>
@@ -34,136 +31,96 @@
 
   <main class="main">
 
-    <section class="heading">
-      <p class="eyebrow">GITHUB ACTIONS</p>
-      <h1>Pipeline Investigation</h1>
-      <p>Inspect CI/CD runs and investigate build failures using processed logs and AI.</p>
-    </section>
-
     <section class="selectors">
       <div class="selector">
         <label for="repository">Repository</label>
-        <select id="repository">
-          <option value="">Select repository</option>
-        </select>
+        <select id="repository"><option value="">Select repository</option></select>
       </div>
+      <span class="arrow">→</span>
       <div class="selector">
         <label for="workflow">Workflow</label>
-        <select id="workflow" disabled>
-          <option value="">Select workflow</option>
-        </select>
+        <select id="workflow" disabled><option value="">Select workflow</option></select>
       </div>
+      <span class="arrow">→</span>
       <div class="selector">
         <label for="run">Run</label>
-        <select id="run" disabled>
-          <option value="">Select run</option>
-        </select>
+        <select id="run" disabled><option value="">Select run</option></select>
       </div>
     </section>
 
-    <!-- ================= RUN OVERVIEW ================= -->
-    <section class="section">
-      <div class="section-title">
-        <h2>Run Overview</h2>
+    <!-- Overview strip: what pipeline, did it succeed -->
+    <section class="overview-strip">
+      <span id="buildStatus" class="build-status neutral">SELECT A RUN</span>
+      <div class="overview-main">
+        <h1 id="buildTitle">Select a workflow run</h1>
+        <p id="buildMessage">Choose a run above to inspect its GitHub Actions result.</p>
       </div>
-
-      <div class="overview-card">
-        <div class="overview-top">
-          <span id="buildStatus" class="build-status neutral">SELECT A RUN</span>
-          <h3 id="buildTitle">Select a workflow run</h3>
-          <p id="buildMessage">Choose a run above to inspect its GitHub Actions result.</p>
-        </div>
-
-        <div class="overview-grid">
-          <div><span>Repository</span><strong id="infoRepository">—</strong></div>
-          <div><span>Workflow</span><strong id="infoWorkflow">—</strong></div>
-          <div><span>Branch</span><strong id="infoBranch">—</strong></div>
-          <div><span>Commit</span><strong id="infoCommit">—</strong></div>
-          <div><span>Status</span><strong id="runStatus">—</strong></div>
-          <div><span>Conclusion</span><strong id="runConclusion">—</strong></div>
-          <div><span>Started</span><strong id="runStarted">—</strong></div>
-          <div><span>Completed</span><strong id="runCompleted">—</strong></div>
-          <div><span>Duration</span><strong id="runDuration">—</strong></div>
-        </div>
+      <div class="overview-meta">
+        <div><span>Repository</span><strong id="infoRepository">—</strong></div>
+        <div><span>Workflow</span><strong id="infoWorkflow">—</strong></div>
+        <div><span>Branch</span><strong id="infoBranch">—</strong></div>
+        <div><span>Commit</span><strong id="infoCommit">—</strong></div>
+        <div><span>Started</span><strong id="runStarted">—</strong></div>
+        <div><span>Duration</span><strong id="runDuration">—</strong></div>
+        <div class="hidden-meta"><strong id="runStatus">—</strong><strong id="runConclusion">—</strong><strong id="runCompleted">—</strong></div>
       </div>
     </section>
 
-    <!-- ================= AI INVESTIGATION ================= -->
-    <section class="section ai-section">
-      <div class="section-title">
-        <div>
-          <h2>AI Investigation</h2>
-          <p class="section-subtitle">Understand what happened in your workflow.</p>
-        </div>
-        <button id="analyzeButton" class="analyze-button" disabled>Analyze with AI</button>
-      </div>
+    <!-- Why it happened / how to fix + logs, side by side -->
+    <section class="workspace">
 
-      <div class="analysis-card">
-
-        <div class="analysis-block">
-          <h4>Status</h4>
-          <span id="aiStatus" class="build-status neutral">NOT ANALYZED</span>
-        </div>
-
-        <div class="analysis-block">
-          <h4>Summary</h4>
-          <p id="aiSummary">Run AI analysis to investigate this workflow.</p>
-        </div>
-
-        <div class="analysis-block">
-          <h4>Root Cause</h4>
-          <p id="rootCause" class="callout">—</p>
-        </div>
-
-        <div class="analysis-block">
-          <h4>Probable Causes</h4>
-          <div id="probableCauses">
-            <div class="empty-analysis">No analysis available.</div>
-          </div>
-        </div>
-
-        <div class="analysis-block">
-          <h4>Suggested Fixes</h4>
-          <div id="fixes">
-            <div class="empty-analysis">No fixes available.</div>
-          </div>
-        </div>
-
-        <div class="analysis-block">
-          <h4>Warnings</h4>
-          <div id="warnings">
-            <div class="empty-analysis">No warnings available.</div>
-          </div>
-        </div>
-
-        <div class="analysis-block">
-          <h4>Evidence</h4>
-          <div id="evidence">
-            <div class="empty-analysis">No evidence available.</div>
-          </div>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- ================= PROCESSED LOGS ================= -->
-    <section class="section">
-      <div class="section-title">
-        <h2>Processed Logs</h2>
-      </div>
-
-      <div class="logs-card">
-        <div class="logs-header">
-          <span>Processed Logs</span>
+      <div class="pane logs-pane">
+        <div class="pane-head">
+          <h2>Processed logs</h2>
           <span id="logCount">0 lines</span>
         </div>
         <pre id="logs">Select a workflow run to load processed logs.</pre>
       </div>
+
+      <div class="pane analysis-pane">
+        <div class="pane-head">
+          <h2>AI investigation</h2>
+          <button id="analyzeButton" class="analyze-btn" disabled>Analyze with AI</button>
+        </div>
+
+        <div class="analysis-body">
+          <div class="block">
+            <span id="aiStatus" class="build-status neutral">NOT ANALYZED</span>
+            <p id="aiSummary" class="summary">Run AI analysis to investigate this workflow.</p>
+          </div>
+
+          <div class="block">
+            <h4>Root cause</h4>
+            <p id="rootCause" class="callout">—</p>
+          </div>
+
+          <div class="block">
+            <h4>Probable causes</h4>
+            <div id="probableCauses"><div class="empty-analysis">No analysis available.</div></div>
+          </div>
+
+          <div class="block">
+            <h4>Suggested fixes</h4>
+            <div id="fixes"><div class="empty-analysis">No fixes available.</div></div>
+          </div>
+
+          <div class="block">
+            <h4>Warnings</h4>
+            <div id="warnings"><div class="empty-analysis">No warnings available.</div></div>
+          </div>
+
+          <div class="block">
+            <h4>Evidence</h4>
+            <div id="evidence"><div class="empty-analysis">No evidence available.</div></div>
+          </div>
+        </div>
+      </div>
+
     </section>
 
   </main>
 </div>
 
-<script src="/dashboard/dashboard.js"></script>
+<script src="dashboard.js"></script>
 </body>
 </html>
