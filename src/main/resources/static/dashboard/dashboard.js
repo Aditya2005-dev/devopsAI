@@ -328,6 +328,7 @@ ${currentProcessedLogs}
 
             return response.text();
         })
+
         .then(text => {
 
             console.log("Raw AI response:", text);
@@ -335,52 +336,96 @@ ${currentProcessedLogs}
             let data;
 
             try {
-                data = JSON.parse(text);
+                let cleaned = text.trim();
 
-                // Handles the case where backend returns JSON
-                // encoded as a JSON string.
+                /*
+                 * First try normal JSON.
+                 *
+                 * Example:
+                 * {
+                 *   "status": "FAILURE"
+                 * }
+                 */
+                try {
+                    data = JSON.parse(cleaned);
+                } catch (firstError) {
+
+                    /*
+                     * Backend may return escaped JSON like:
+                     *
+                     * {\n  \"status\": \"FAILURE\",\n ...}
+                     *
+                     * Convert it back into normal JSON.
+                     */
+                    cleaned = cleaned
+                        .replace(/\\n/g, "\n")
+                        .replace(/\\"/g, '"')
+                        .replace(/\\\\/g, "\\");
+
+                    data = JSON.parse(cleaned);
+                }
+
+                /*
+                 * Handles the case where the backend returns
+                 * a JSON string containing JSON.
+                 */
                 if (typeof data === "string") {
                     data = JSON.parse(data);
                 }
 
             } catch (error) {
+
                 console.error("Invalid AI JSON:", text);
+                console.error("Parsing error:", error);
+
                 throw new Error("Invalid AI response received.");
             }
 
-            // Ignore response if user changed the selected run
-            // while AI was processing.
+            /*
+             * Ignore response if the user changed the selected
+             * workflow/run while AI was processing.
+             */
             if (!currentRun || currentRun.runId !== analyzingRunId) {
                 console.warn("Ignoring analysis for old run.");
                 return;
             }
 
             /*
-             * The GitHub run conclusion is authoritative for the
-             * dashboard status.
+             * GitHub Actions run status is authoritative.
              *
-             * AI should explain the failure, not redefine the
-             * GitHub Actions run status.
+             * AI explains the failure but does not redefine
+             * whether the GitHub workflow actually succeeded
+             * or failed.
              */
             if (
                 workflowStatus === "failure" ||
                 workflowStatus === "failed"
             ) {
                 data.status = "FAILURE";
+
             } else if (workflowStatus === "success") {
                 data.status = "SUCCESS";
             }
 
+            console.log("Parsed AI response:", data);
+
             displayAnalysis(data);
         })
+
         .catch(error => {
+
             console.error("AI analysis error:", error);
 
+            /*
+             * Do not show an old analysis error if the user
+             * has already selected another workflow run.
+             */
             if (!currentRun || currentRun.runId !== analyzingRunId) {
                 return;
             }
 
             document.getElementById("aiStatus").textContent = "ERROR";
+
             document.getElementById("aiStatus").className =
                 "build-status failure";
 
@@ -402,7 +447,9 @@ ${currentProcessedLogs}
             document.getElementById("evidence").innerHTML =
                 '<div class="empty-analysis">Unable to generate evidence.</div>';
         })
+
         .finally(() => {
+
             button.disabled = false;
             button.textContent = "Analyze with AI";
         });
