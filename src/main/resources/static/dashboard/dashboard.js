@@ -256,35 +256,108 @@ function loadLogs(owner, repo, runId) {
 }
 
 function analyzeLogs() {
-    if (!currentProcessedLogs) return;
+    if (!currentProcessedLogs || !currentRun) return;
 
     const button = document.getElementById("analyzeButton");
+
+    // Remember which run we are analyzing.
+    // Prevents an old AI response from appearing for a newly selected run.
+    const analyzingRunId = currentRun.runId;
+
     button.disabled = true;
     button.textContent = "Analyzing...";
+
     resetAnalysisText("Analyzing workflow logs...");
 
     fetch("/api/github/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ logs: currentProcessedLogs })
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            logs: currentProcessedLogs
+        })
     })
         .then(response => {
             if (!response.ok) {
-                return response.text().then(message => { throw new Error(message); });
+                return response.text().then(message => {
+                    throw new Error(message);
+                });
             }
+
             return response.text();
         })
         .then(text => {
-            const cleanText = text.replace(/^"|"$/g, "").replace(/\\"/g, '"').replace(/\\n/g, "\n");
-            const data = JSON.parse(cleanText);
+
+            console.log("Raw AI response:", text);
+
+            let data;
+
+            try {
+                // First attempt:
+                // Backend normally returns JSON directly.
+                data = JSON.parse(text);
+            } catch (firstError) {
+
+                // Some backends return a JSON string containing JSON.
+                // Example:
+                // "{\"status\":\"FAILURE\",...}"
+                try {
+                    const parsedOnce = JSON.parse(text);
+
+                    if (typeof parsedOnce === "string") {
+                        data = JSON.parse(parsedOnce);
+                    } else {
+                        data = parsedOnce;
+                    }
+
+                } catch (secondError) {
+                    console.error("Invalid AI JSON response:", text);
+                    throw new Error("Backend returned invalid AI analysis JSON.");
+                }
+            }
+
+            // Make sure this response still belongs to
+            // the run that the user is currently viewing.
+            if (!currentRun || currentRun.runId !== analyzingRunId) {
+                console.warn("Ignoring AI response for an old pipeline run.");
+                return;
+            }
+
+            console.log("Parsed AI response:", data);
+
             displayAnalysis(data);
         })
         .catch(error => {
             console.error("AI analysis error:", error);
+
+            // Don't overwrite the currently selected run
+            // with an error belonging to an old request.
+            if (!currentRun || currentRun.runId !== analyzingRunId) {
+                return;
+            }
+
             document.getElementById("aiStatus").textContent = "ERROR";
-            document.getElementById("aiStatus").className = "build-status failure";
-            document.getElementById("aiSummary").textContent = "AI analysis could not be completed.";
-            document.getElementById("rootCause").textContent = "Unable to analyze logs.";
+            document.getElementById("aiStatus").className =
+                "build-status failure";
+
+            document.getElementById("aiSummary").textContent =
+                "AI analysis could not be completed.";
+
+            document.getElementById("rootCause").textContent =
+                error.message || "Unable to analyze logs.";
+
+            document.getElementById("probableCauses").innerHTML =
+                '<div class="empty-analysis">Unable to generate analysis.</div>';
+
+            document.getElementById("fixes").innerHTML =
+                '<div class="empty-analysis">Unable to generate fixes.</div>';
+
+            document.getElementById("warnings").innerHTML =
+                '<div class="empty-analysis">Unable to generate warnings.</div>';
+
+            document.getElementById("evidence").innerHTML =
+                '<div class="empty-analysis">Unable to generate evidence.</div>';
         })
         .finally(() => {
             button.disabled = false;
